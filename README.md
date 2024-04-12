@@ -1,7 +1,7 @@
 # my AI Personal Assistant
 
 ## Introduction
-Welcome to the Self AI Personal Assistant repository! This project is an ambitious endeavor to create a personal assistant powered by the Google Gemini API and Flutter. It's designed to be a versatile tool that can adapt to your needs and preferences.
+Welcome to the My AI Personal Assistant repository! This project is an ambitious endeavor to create a personal assistant powered by the Google Gemini API and Flutter. It's designed to be a versatile tool that can adapt to your needs and preferences.
 
 ## Project Status
 Currently, the project is in its development phase. The assistant is capable of providing responses based on the prompts given. Future updates aim to transform it into a voice-activated and personalized AI assistant.
@@ -16,8 +16,8 @@ Currently, the project is in its development phase. The assistant is capable of 
 To get started with this project, clone the repository and follow the setup instructions to install the necessary dependencies.
 
 ```bash
-git clone https://github.com/Piyu-Pika/self_ai.git
-cd self_ai
+git clone https://github.com/Piyu-Pika/my_ai.git
+cd my_ai
 flutter pub get
 ```
 
