@@ -1,4 +1,4 @@
-# my AI Personal Assistant
+# MY AI Personal Assistant
 
 ## Introduction
 Welcome to the My AI Personal Assistant repository! This project is an ambitious endeavor to create a personal assistant powered by the Google Gemini API and Flutter. It's designed to be a versatile tool that can adapt to your needs and preferences.
