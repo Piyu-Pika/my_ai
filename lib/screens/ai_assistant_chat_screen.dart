@@ -331,7 +331,7 @@ class ProfileScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Text(
-              'Piyush Bhardwaj',
+              'Created by :- Piyush Bhardwaj',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -340,7 +340,7 @@ class ProfileScreen extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              'Custom11@gmail.com',
+              'Contact Me : piyushbhardwaj1603@gmail.com',
               style: TextStyle(
                 fontSize: 16,
                 color: isDarkMode ? Colors.white70 : Colors.black54,

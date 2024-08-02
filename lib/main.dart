@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gemini/flutter_gemini.dart';
 import 'package:my_ai/key.dart';
-//import 'package:my_ai/screens/home_screen.dart';
-import 'package:my_ai/screens/ai_assistant_chat_screen.dart';
 import 'package:my_ai/screens/homeScreen.dart';
 import 'package:provider/provider.dart';
 
