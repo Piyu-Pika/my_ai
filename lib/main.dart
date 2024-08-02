@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gemini/flutter_gemini.dart';
-import 'package:my_ai/screens/home_screen.dart';
+import 'package:my_ai/key.dart';
+//import 'package:my_ai/screens/home_screen.dart';
 import 'package:my_ai/screens/ai_assistant_chat_screen.dart';
+import 'package:my_ai/screens/homeScreen.dart';
 import 'package:provider/provider.dart';
 
 void main() {
-  Gemini.init(apiKey: '<YOUR API KEY>');
+  Gemini.init(apiKey: apikey);
   runApp(
     ChangeNotifierProvider(
       create: (context) => ThemeProvider(),
@@ -34,7 +36,7 @@ class MyApp extends StatelessWidget {
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, child) {
         return MaterialApp(
-          home: const MainScreen(),
+          home: const HomeScreen(),
           debugShowCheckedModeBanner: false,
           theme: ThemeData.light().copyWith(
             colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
@@ -48,47 +50,6 @@ class MyApp extends StatelessWidget {
           themeMode: themeProvider.themeMode,
         );
       },
-    );
-  }
-}
-
-class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
-
-  @override
-  State<MainScreen> createState() => _MainScreenState();
-}
-
-class _MainScreenState extends State<MainScreen> {
-  int _currentIndex = 0;
-
-  final List<Widget> _screens = [
-    const MyAiScreen(),
-    const AIAssistantChatScreen(),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: _screens[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'My AI',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.chat),
-            label: 'AI Chat',
-          ),
-        ],
-      ),
     );
   }
 }

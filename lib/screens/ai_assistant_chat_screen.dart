@@ -1,87 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gemini/flutter_gemini.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
-class AIAssistantChatScreen extends StatefulWidget {
-  const AIAssistantChatScreen({Key? key}) : super(key: key);
+class ChatScreen extends StatefulWidget {
+  final String roomName;
+  final List<ChatMessage> messages;
+  final Function(List<ChatMessage>) onMessagesUpdated;
+
+  const ChatScreen({
+    Key? key,
+    required this.roomName,
+    required this.messages,
+    required this.onMessagesUpdated,
+  }) : super(key: key);
 
   @override
-  _AIAssistantChatScreenState createState() => _AIAssistantChatScreenState();
+  _ChatScreenState createState() => _ChatScreenState();
 }
 
-class _AIAssistantChatScreenState extends State<AIAssistantChatScreen> {
+class _ChatScreenState extends State<ChatScreen> {
   final _textController = TextEditingController();
   final _scrollController = ScrollController();
   final gemini = Gemini.instance;
-  Map<String, List<ChatMessage>> _chatrooms = {};
-  String _currentChatroom = 'default';
   bool _isLoading = false;
+  late List<ChatMessage> _messages;
 
   @override
   void initState() {
     super.initState();
-    _loadChatrooms();
-  }
-
-  Future<void> _loadChatrooms() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? chatroomsJson = prefs.getString('chatrooms');
-    if (chatroomsJson != null) {
-      final Map<String, dynamic> decodedChatrooms = jsonDecode(chatroomsJson);
-      setState(() {
-        _chatrooms = decodedChatrooms.map((key, value) => MapEntry(
-              key,
-              (value as List<dynamic>)
-                  .map((msg) => ChatMessage.fromJson(msg))
-                  .toList(),
-            ));
-      });
-    } else {
-      _createNewChatroom('default');
+    _messages = widget.messages;
+    if (_messages.isEmpty) {
+      _messages.add(ChatMessage(
+        text: "Good evening, how can I assist you today?",
+        isUser: false,
+      ));
     }
-  }
-
-  Future<void> _saveChatrooms() async {
-    final prefs = await SharedPreferences.getInstance();
-    final Map<String, dynamic> chatroomsToSave =
-        _chatrooms.map((key, value) => MapEntry(
-              key,
-              value.map((msg) => msg.toJson()).toList(),
-            ));
-    final String chatroomsJson = jsonEncode(chatroomsToSave);
-    await prefs.setString('chatrooms', chatroomsJson);
-  }
-
-  void _createNewChatroom(String name) {
-    setState(() {
-      _chatrooms[name] = [
-        ChatMessage(
-          text: "Hello! I'm your AI assistant. How can I help you today?",
-          isUser: false,
-        )
-      ];
-      _currentChatroom = name;
-    });
-    _saveChatrooms();
-  }
-
-  void _switchChatroom(String name) {
-    setState(() {
-      _currentChatroom = name;
-    });
-    _scrollToBottom();
-  }
-
-  void _deleteChatroom(String name) {
-    setState(() {
-      _chatrooms.remove(name);
-      if (_currentChatroom == name) {
-        _currentChatroom = _chatrooms.keys.first;
-      }
-    });
-    _saveChatrooms();
   }
 
   Future<void> _sendMessage() async {
@@ -89,19 +44,20 @@ class _AIAssistantChatScreenState extends State<AIAssistantChatScreen> {
 
     final userMessage = _textController.text;
     setState(() {
-      _chatrooms[_currentChatroom]!.add(ChatMessage(
+      _messages.add(ChatMessage(
         text: userMessage,
         isUser: true,
       ));
       _isLoading = true;
     });
 
+    widget.onMessagesUpdated(_messages);
+    _textController.clear();
     _scrollToBottom();
-    _saveChatrooms();
 
     String prompt = '''
     Previous conversation:
-    ${_chatrooms[_currentChatroom]!.map((msg) => "${msg.isUser ? 'User' : 'AI'}: ${msg.text}").join('\n')}
+    ${_messages.map((msg) => "${msg.isUser ? 'User' : 'AI'}: ${msg.text}").join('\n')}
     
     User: $userMessage
     
@@ -111,35 +67,37 @@ class _AIAssistantChatScreenState extends State<AIAssistantChatScreen> {
     try {
       final response = await gemini.text(prompt);
       setState(() {
-        _chatrooms[_currentChatroom]!.add(ChatMessage(
+        _messages.add(ChatMessage(
           text: response?.content?.parts?.last.text ??
               'Sorry, I could not process that.',
           isUser: false,
         ));
         _isLoading = false;
       });
-      _saveChatrooms();
+      widget.onMessagesUpdated(_messages);
     } catch (e) {
       setState(() {
-        _chatrooms[_currentChatroom]!.add(ChatMessage(
+        _messages.add(ChatMessage(
           text: 'An error occurred. Please try again.',
           isUser: false,
         ));
         _isLoading = false;
       });
+      widget.onMessagesUpdated(_messages);
     }
 
-    _textController.clear();
     _scrollToBottom();
   }
 
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
     });
   }
 
@@ -148,37 +106,22 @@ class _AIAssistantChatScreenState extends State<AIAssistantChatScreen> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      backgroundColor: isDarkMode ? Colors.black : Colors.white,
       appBar: AppBar(
-        title: Text('AI Assistant - $_currentChatroom'),
-        centerTitle: true,
+        backgroundColor: isDarkMode ? Colors.black : Colors.white,
         elevation: 0,
-        actions: [
-          PopupMenuButton<String>(
-            onSelected: (String result) {
-              if (result == 'new') {
-                _showNewChatroomDialog();
-              } else if (result == 'switch') {
-                _showSwitchChatroomDialog();
-              } else if (result == 'delete') {
-                _showDeleteChatroomDialog();
-              }
-            },
-            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-              const PopupMenuItem<String>(
-                value: 'new',
-                child: Text('New Chatroom'),
-              ),
-              const PopupMenuItem<String>(
-                value: 'switch',
-                child: Text('Switch Chatroom'),
-              ),
-              const PopupMenuItem<String>(
-                value: 'delete',
-                child: Text('Delete Chatroom'),
-              ),
-            ],
+        title: Text(
+          widget.roomName,
+          style: TextStyle(
+            color: isDarkMode ? Colors.white : Colors.black,
+            fontWeight: FontWeight.bold,
           ),
-        ],
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+          color: isDarkMode ? Colors.white : Colors.black,
+        ),
       ),
       body: SafeArea(
         child: Column(
@@ -186,9 +129,9 @@ class _AIAssistantChatScreenState extends State<AIAssistantChatScreen> {
             Expanded(
               child: ListView.builder(
                 controller: _scrollController,
-                itemCount: _chatrooms[_currentChatroom]?.length ?? 0,
+                itemCount: _messages.length,
                 itemBuilder: (context, index) {
-                  return _chatrooms[_currentChatroom]![index];
+                  return _messages[index];
                 },
               ),
             ),
@@ -216,7 +159,7 @@ class _AIAssistantChatScreenState extends State<AIAssistantChatScreen> {
                       child: TextField(
                         controller: _textController,
                         decoration: InputDecoration(
-                          hintText: 'Type your message...',
+                          hintText: 'Chat with Pikachu',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(25.0),
                             borderSide: BorderSide.none,
@@ -257,100 +200,8 @@ class _AIAssistantChatScreenState extends State<AIAssistantChatScreen> {
       ),
     );
   }
-
-  void _showNewChatroomDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        String newChatroomName = '';
-        return AlertDialog(
-          title: const Text('Create New Chatroom'),
-          content: TextField(
-            onChanged: (value) {
-              newChatroomName = value;
-            },
-            decoration: const InputDecoration(hintText: "Enter chatroom name"),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Cancel'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: const Text('Create'),
-              onPressed: () {
-                if (newChatroomName.isNotEmpty) {
-                  _createNewChatroom(newChatroomName);
-                  Navigator.of(context).pop();
-                }
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showSwitchChatroomDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Switch Chatroom'),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: _chatrooms.length,
-              itemBuilder: (BuildContext context, int index) {
-                String chatroomName = _chatrooms.keys.elementAt(index);
-                return ListTile(
-                  title: Text(chatroomName),
-                  onTap: () {
-                    _switchChatroom(chatroomName);
-                    Navigator.of(context).pop();
-                  },
-                );
-              },
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  void _showDeleteChatroomDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Delete Chatroom'),
-          content: const Text(
-              'Are you sure you want to delete this chatroom and all its messages?'),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Cancel'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: const Text('Delete'),
-              onPressed: () {
-                _deleteChatroom(_currentChatroom);
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
 }
 
-// ChatMessage class remains the same
 class ChatMessage extends StatelessWidget {
   final String text;
   final bool isUser;
@@ -441,6 +292,62 @@ class ChatMessage extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class ProfileScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    return Scaffold(
+      backgroundColor: isDarkMode ? Colors.black : Colors.white,
+      appBar: AppBar(
+        backgroundColor: isDarkMode ? Colors.black : Colors.white,
+        elevation: 0,
+        title: Text(
+          'Profile',
+          style: TextStyle(
+            color: isDarkMode ? Colors.white : Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+          color: isDarkMode ? Colors.white : Colors.black,
+        ),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircleAvatar(
+              radius: 50,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              child: const Icon(Icons.person, size: 50, color: Colors.white),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Piyush Bhardwaj',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: isDarkMode ? Colors.white : Colors.black,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Custom11@gmail.com',
+              style: TextStyle(
+                fontSize: 16,
+                color: isDarkMode ? Colors.white70 : Colors.black54,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
