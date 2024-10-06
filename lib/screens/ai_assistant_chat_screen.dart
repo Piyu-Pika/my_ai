@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gemini/flutter_gemini.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:my_ai/screens/ai_live_call_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
@@ -32,7 +33,7 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
     _messages = widget.messages;
     if (_messages.isEmpty) {
-      _messages.add(ChatMessage(
+      _messages.add(const ChatMessage(
         text: "Good evening, how can I assist you today?",
         isUser: false,
       ));
@@ -77,7 +78,7 @@ class _ChatScreenState extends State<ChatScreen> {
       widget.onMessagesUpdated(_messages);
     } catch (e) {
       setState(() {
-        _messages.add(ChatMessage(
+        _messages.add(const ChatMessage(
           text: 'An error occurred. Please try again.',
           isUser: false,
         ));
@@ -122,6 +123,16 @@ class _ChatScreenState extends State<ChatScreen> {
           onPressed: () => Navigator.of(context).pop(),
           color: isDarkMode ? Colors.white : Colors.black,
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.call),
+            onPressed: () {
+              Navigator.of(context).push(MaterialPageRoute(
+                builder: (context) => const AILiveCallScreen(),
+              ));
+            },
+          ),
+        ],
       ),
       body: SafeArea(
         child: Column(
